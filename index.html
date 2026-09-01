@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClockRush</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="header">
+        <p class="eyebrow">ClockRush</p>
+        <h1>ClockRush</h1>
+        <p class="tagline">Read it. Beat it.</p>
+      </header>
+
+      <section id="startScreen" class="screen start-screen" aria-label="ClockRush main menu">
+        <div class="start-card">
+          <p class="eyebrow">ClockRush</p>
+          <h2>Read it. Beat it.</h2>
+
+          <div class="mode-selector" aria-label="Game mode selection">
+            <button class="mode-choice active" type="button" data-mode-key="Quick Rush">
+              <span class="mode-name">Quick Rush</span>
+              <span class="mode-description">10 rounds, automatic advancement.</span>
+            </button>
+            <button class="mode-choice" type="button" data-mode-key="Endless">
+              <span class="mode-name">Endless</span>
+              <span class="mode-description">Keep playing until you quit.</span>
+            </button>
+            <button class="mode-choice" type="button" data-mode-key="Survival">
+              <span class="mode-name">Survival</span>
+              <span class="mode-description">Three lives. Make them count.</span>
+            </button>
+            <button class="mode-choice" type="button" data-mode-key="Time Attack">
+              <span class="mode-name">Time Attack</span>
+              <span class="mode-description">60 seconds to chase a high score.</span>
+            </button>
+            <button class="mode-choice" type="button" data-mode-key="Adaptive">
+              <span class="mode-name">Adaptive</span>
+              <span class="mode-description">Starts at Easy and scales with performance.</span>
+            </button>
+          </div>
+
+          <button id="startButton" class="start-btn" type="button">Start Game</button>
+          <button id="optionsButton" class="secondary-btn" type="button">Options</button>
+        </div>
+      </section>
+
+      <section id="optionsScreen" class="screen options-screen hidden" aria-label="ClockRush options">
+        <div class="options-card">
+          <p class="eyebrow">Options</p>
+          <h2>Settings</h2>
+
+          <div class="options-group">
+            <div class="options-header">
+              <h3>Difficulty</h3>
+              <span id="activeDifficultyLabel" class="selection-pill">Medium</span>
+            </div>
+            <div id="difficultyOptions" class="option-chip-list"></div>
+            <div id="difficultyDetails" class="difficulty-details" aria-live="polite"></div>
+            <button id="customDifficultyButton" class="secondary-btn ghost-btn" type="button">Custom Difficulty</button>
+          </div>
+
+          <div class="options-group">
+            <h3>Audio</h3>
+            <div class="toggle-row">
+              <span>Sound Effects</span>
+              <button id="soundEffectsToggle" class="toggle-btn" type="button" aria-pressed="true">ON</button>
+            </div>
+            <div class="toggle-row">
+              <span>Music</span>
+              <button id="musicToggle" class="toggle-btn" type="button" aria-pressed="false">OFF</button>
+            </div>
+          </div>
+
+          <div class="options-group">
+            <h3>Appearance</h3>
+            <label class="select-row" for="themeSelect">
+              <span>Theme</span>
+              <select id="themeSelect">
+                <option value="Midnight">Midnight</option>
+                <option value="Light">Light</option>
+                <option value="Forest">Forest</option>
+                <option value="Skyline">Skyline</option>
+                <option value="Peach">Peach</option>
+                <option value="Aurora">Aurora</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="options-group">
+            <h3>Survival</h3>
+            <div class="radio-list">
+              <label>
+                <input type="radio" name="survivalLives" value="1" />
+                <span>1 Life</span>
+              </label>
+              <label>
+                <input type="radio" name="survivalLives" value="3" checked />
+                <span>3 Lives</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="options-actions">
+            <button id="backToMenuButton" class="secondary-btn" type="button">Back to Main Menu</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="customDifficultyScreen" class="screen options-screen hidden" aria-label="Custom difficulty configuration">
+        <div class="options-card compact-card">
+          <p class="eyebrow">Custom</p>
+          <h2>Difficulty Setup</h2>
+
+          <div class="options-group">
+            <h3>Minute precision</h3>
+            <div class="radio-list">
+              <label>
+                <input type="radio" name="minutePrecision" value="five" />
+                <span>5-minute increments</span>
+              </label>
+              <label>
+                <input type="radio" name="minutePrecision" value="one" checked />
+                <span>Every minute</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="options-group">
+            <h3>Viewing time</h3>
+            <input id="customViewingTimeRange" type="range" min="1" max="60" step="1" value="15" />
+            <div class="range-value"><span id="customViewingTimeLabel">15s</span></div>
+          </div>
+
+          <div class="options-group">
+            <h3>Clock face</h3>
+            <div class="radio-list">
+              <label>
+                <input type="radio" name="clockFace" value="Numbers" checked />
+                <span>Numbers</span>
+              </label>
+              <label>
+                <input type="radio" name="clockFace" value="Roman" />
+                <span>Roman</span>
+              </label>
+              <label>
+                <input type="radio" name="clockFace" value="Important Numbers" />
+                <span>Important Numbers</span>
+              </label>
+              <label>
+                <input type="radio" name="clockFace" value="Minimal" />
+                <span>Minimal</span>
+              </label>
+              <label>
+                <input type="radio" name="clockFace" value="Random" />
+                <span>Random</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="options-actions split-actions">
+            <button id="saveCustomDifficultyButton" class="start-btn small-btn" type="button">Save</button>
+            <button id="cancelCustomDifficultyButton" class="secondary-btn small-btn" type="button">Back</button>
+          </div>
+        </div>
+      </section>
+
+      <main id="gamePanel" class="game-panel hidden" aria-live="polite">
+        <div class="game-panel-header">
+          <div id="gameModeTitle" class="game-mode-title">Quick Rush</div>
+          <div id="gameMetaBar" class="game-header-meta" aria-live="polite">
+            <span class="game-meta-line">Round 1 / 10</span>
+          </div>
+          <div class="game-panel-header__menu">
+            <button id="gameMenuButton" class="menu-btn" type="button" aria-label="Open game menu" aria-expanded="false">
+              <span></span><span></span><span></span>
+            </button>
+          </div>
+        </div>
+
+        <section class="clock-card" aria-label="Analog clock challenge">
+          <div class="timer-row">
+            <span class="timer-label">Viewing Time</span>
+            <span id="timerValue" class="timer-value">30.0s</span>
+          </div>
+          <div id="phaseIndicator" class="phase-indicator">View the clock • remember it • enter the time</div>
+
+          <svg
+            id="clockSvg"
+            class="clock-svg"
+            viewBox="0 0 220 220"
+            role="img"
+            aria-label="Analog clock showing the target time"
+          >
+            <g id="clockFace"></g>
+            <g id="clockHands">
+              <line id="hourHand" class="hand hour-hand" x1="110" y1="110" x2="110" y2="110"></line>
+              <line id="minuteHand" class="hand minute-hand" x1="110" y1="110" x2="110" y2="110"></line>
+              <circle id="handPin" class="hand-pin" cx="110" cy="110" r="7"></circle>
+            </g>
+          </svg>
+        </section>
+
+        <section class="answer-panel" aria-label="Answer controls">
+          <div class="answer-mode-switch" role="tablist" aria-label="Answer input mode">
+            <button type="button" class="mode-btn active" data-input-mode="scroller" aria-pressed="true">Scroller</button>
+            <button type="button" class="mode-btn" data-input-mode="type" aria-pressed="false">Type</button>
+          </div>
+
+          <div id="scrollerAnswerPanel" class="answer-mode-panel">
+            <div class="picker-row">
+              <div class="picker-wrap">
+                <label class="picker-title" for="hourList">Hour</label>
+                <div class="wheel-window">
+                  <div id="hourList" class="wheel-list" aria-label="Hour wheel picker"></div>
+                </div>
+              </div>
+
+              <div class="picker-wrap">
+                <label class="picker-title" for="minuteList">Minute</label>
+                <div class="wheel-window">
+                  <div id="minuteList" class="wheel-list" aria-label="Minute wheel picker"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="typeAnswerPanel" class="answer-type-panel hidden" aria-label="Numeric answer input">
+            <div class="type-input-row">
+              <label class="type-field">
+                <span>Hour</span>
+                <input id="hourTypeInput" type="number" inputmode="numeric" min="1" max="12" step="1" value="12" aria-label="Hour input" />
+              </label>
+              <label class="type-field">
+                <span>Minute</span>
+                <input id="minuteTypeInput" type="number" inputmode="numeric" min="0" max="59" step="1" value="00" aria-label="Minute input" />
+              </label>
+            </div>
+          </div>
+
+          <button id="submitBtn" class="submit-btn" type="button">Submit</button>
+        </section>
+
+        <section class="feedback-panel">
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+        </section>
+
+        <section id="roundTransitionPanel" class="transition-panel hidden" aria-live="polite">
+          <div class="transition-header">
+            <span>Next round</span>
+            <span id="transitionCountdownText">2.5s</span>
+          </div>
+          <div class="transition-track" aria-hidden="true">
+            <div id="transitionProgressFill" class="transition-fill"></div>
+          </div>
+        </section>
+
+        <section class="stats-panel" aria-label="Session statistics">
+          <div class="stat-item">
+            <span class="stat-label">Score</span>
+            <strong id="scoreValue">0</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Streak</span>
+            <strong id="streakValue">🔥 0</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Accuracy</span>
+            <strong id="accuracyValue">0%</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Best Time</span>
+            <strong id="bestTimeValue">-</strong>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Questions</span>
+            <strong id="questionValue">0</strong>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="gameDrawerBackdrop" class="drawer-backdrop hidden" aria-hidden="true"></div>
+
+    <aside id="gameDrawer" class="game-drawer" aria-hidden="true" aria-label="ClockRush game menu">
+      <div class="drawer-header">
+        <span>Game Menu</span>
+        <button id="drawerCloseButton" class="drawer-close" type="button" aria-label="Close menu">✕</button>
+      </div>
+      <div class="drawer-actions">
+        <button id="drawerContinueButton" class="secondary-btn drawer-btn" type="button">Continue</button>
+        <button id="drawerOptionsButton" class="secondary-btn drawer-btn" type="button">Options</button>
+        <button id="drawerQuitButton" class="danger-btn drawer-btn" type="button">Quit Round</button>
+      </div>
+    </aside>
+
+    <div id="confirmationModal" class="modal-overlay hidden" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmationTitle">
+        <p id="confirmationTitle" class="modal-title">Are you sure you want to quit?</p>
+        <p id="confirmationDescription" class="modal-description">Your current round will be discarded.</p>
+        <div class="modal-actions">
+          <button id="modalCancelButton" class="secondary-btn modal-btn" type="button">Continue</button>
+          <button id="modalConfirmButton" class="start-btn modal-btn" type="button">Quit</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="resultsScreen" class="screen results-screen hidden" aria-label="Session results screen">
+      <div class="results-card">
+        <p class="eyebrow">Results</p>
+        <h2 id="resultsTitle">Session Complete</h2>
+        <div class="results-meta" id="resultsModeLabel">Mode: Quick Rush</div>
+
+        <div class="results-grid">
+          <div class="result-item"><span>Rounds</span><strong id="resultsRounds">0</strong></div>
+          <div class="result-item"><span>Correct</span><strong id="resultsCorrect">0</strong></div>
+          <div class="result-item"><span>Incorrect</span><strong id="resultsIncorrect">0</strong></div>
+          <div class="result-item"><span>Accuracy</span><strong id="resultsAccuracy">0%</strong></div>
+          <div class="result-item"><span>Score</span><strong id="resultsScore">0</strong></div>
+          <div class="result-item"><span>Best Streak</span><strong id="resultsBestStreak">0</strong></div>
+          <div class="result-item"><span>Best Time</span><strong id="resultsBestTime">-</strong></div>
+          <div class="result-item"><span>Status</span><strong id="resultsStatus">Completed</strong></div>
+        </div>
+
+        <button id="resultsMenuButton" class="start-btn" type="button">Back to Menu</button>
+      </div>
+    </section>
+
+    <script src="script.js"></script>
+  </body>
+</html>
