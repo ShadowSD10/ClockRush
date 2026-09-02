@@ -457,14 +457,25 @@ function setWheelValue(type, value) {
   updateSelectedValue(type, normalizedValue);
 }
 
-function syncAnswerInputs() {
-  if (dom.hourTypeInput) {
+function syncAnswerInputs({ force = false } = {}) {
+  if (dom.hourTypeInput && (force || document.activeElement !== dom.hourTypeInput)) {
     dom.hourTypeInput.value = String(state.selectedHour);
+    dom.hourTypeInput.removeAttribute("aria-invalid");
   }
 
-  if (dom.minuteTypeInput) {
+  if (dom.minuteTypeInput && (force || document.activeElement !== dom.minuteTypeInput)) {
     dom.minuteTypeInput.value = String(state.selectedMinute).padStart(2, "0");
+    dom.minuteTypeInput.removeAttribute("aria-invalid");
   }
+}
+
+function resetTypedAnswerInputs() {
+  [dom.hourTypeInput, dom.minuteTypeInput].forEach((input) => {
+    if (input) {
+      input.value = "";
+      input.removeAttribute("aria-invalid");
+    }
+  });
 }
 
 function setAnswerMode(mode) {
@@ -485,7 +496,7 @@ function setAnswerMode(mode) {
     button.setAttribute("aria-pressed", String(isActive));
   });
 
-  syncAnswerInputs();
+  syncAnswerInputs({ force: true });
 
   if (state.wheels.hour) {
     setWheelValue("hour", state.selectedHour);
@@ -532,6 +543,35 @@ function sanitizeTypedValue(type, rawValue) {
   return wholeValue;
 }
 
+function setTypedAnswerValue(type, input) {
+  const value = sanitizeTypedValue(type, input.value);
+  const isEmpty = input.value === "";
+
+  input.toggleAttribute("aria-invalid", !isEmpty && value === null);
+  if (value === null) {
+    return null;
+  }
+
+  setWheelValue(type, value);
+  return value;
+}
+
+function getTypedAnswer() {
+  const hour = setTypedAnswerValue("hour", dom.hourTypeInput);
+  const minute = setTypedAnswerValue("minute", dom.minuteTypeInput);
+
+  if (hour === null || minute === null) {
+    dom.feedback.className = "feedback error";
+    dom.feedback.innerHTML = `
+      <span class="feedback-title">Enter a valid time</span>
+      <span class="feedback-copy">Hour: 1–12. Minute: ${getActiveDifficulty().minuteIncrement === 5 ? "00, 05, 10 … 55" : "00–59"}.</span>
+    `;
+    return null;
+  }
+
+  return { hour, minute };
+}
+
 function attachWheelInteractions(type) {
   const wheel = state.wheels[type];
   const element = wheel.element;
@@ -546,7 +586,8 @@ function attachWheelInteractions(type) {
     wheel.dragging = {
       active: true,
       startY: event.clientY,
-      startValue: wheel.currentValue
+      startValue: wheel.currentValue,
+      startIndex: type === "minute" ? getMinuteOptionsForDifficulty().indexOf(wheel.currentValue) : null
     };
     element.classList.add("dragging");
     document.body.style.userSelect = "none";
@@ -557,12 +598,12 @@ function attachWheelInteractions(type) {
       return;
     }
 
-    const deltaStep = Math.round((wheel.dragging.startY - event.clientY) / (wheel.itemHeight * (type === "minute" ? 1.3 : 1)));
+    const pixelsPerStep = type === "minute" ? wheel.itemHeight * 1.35 : wheel.itemHeight;
+    const deltaStep = Math.round((wheel.dragging.startY - event.clientY) / pixelsPerStep);
 
     if (type === "minute") {
       const validValues = getMinuteOptionsForDifficulty();
-      const currentIndex = validValues.indexOf(wheel.currentValue);
-      const nextIndex = clamp(currentIndex + deltaStep, 0, validValues.length - 1);
+      const nextIndex = clamp(wheel.dragging.startIndex + deltaStep, 0, validValues.length - 1);
       const nextValue = validValues[nextIndex];
 
       if (nextValue !== wheel.currentValue) {
@@ -613,7 +654,15 @@ function attachWheelInteractions(type) {
     (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const direction = event.deltaY > 0 ? -1 : 1;
+      const deltaInPixels = event.deltaY * (event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? element.clientHeight : 1);
+      wheel.wheelDelta = (wheel.wheelDelta || 0) + deltaInPixels;
+      const threshold = 80;
+      if (Math.abs(wheel.wheelDelta) < threshold) {
+        return;
+      }
+
+      const direction = wheel.wheelDelta > 0 ? -1 : 1;
+      wheel.wheelDelta -= Math.sign(wheel.wheelDelta) * threshold;
 
       if (type === "minute") {
         const validValues = getMinuteOptionsForDifficulty();
@@ -644,7 +693,8 @@ function renderWheel(type, defaultValue) {
     element: wheelElement,
     itemHeight: 42,
     currentValue: normalizedValue,
-    dragging: null
+    dragging: null,
+    wheelDelta: 0
   };
 
   updateSelectedValue(type, normalizedValue);
@@ -706,7 +756,7 @@ function formatModeClockValue(milliseconds) {
 
 function getHeartString(lives, maxLives = 3) {
   const safeLives = clamp(Number(lives) || 0, 0, maxLives);
-  return "❤️".repeat(safeLives).padEnd(maxLives, "♡");
+  return Array.from({ length: maxLives }, (_, index) => (index < safeLives ? "❤️" : "♡")).join(" ");
 }
 
 function getCurrentModeLabel() {
@@ -746,7 +796,7 @@ function updateGameHeaderMeta() {
   }
 
   if (activeMode === "Quick Rush") {
-    const roundNumber = Math.min(state.stats.answered + 1, 10);
+    const roundNumber = Math.min(state.session.roundsPlayed + 1, 10);
     dom.gameMetaBar.innerHTML = `<span class="game-meta-line">Round ${roundNumber} / 10</span>`;
     return;
   }
@@ -1235,7 +1285,6 @@ function openGameMenu() {
   dom.gameMenuButton.setAttribute("aria-expanded", "true");
   dom.drawerQuitButton.disabled = !(state.roundActive || state.phase === "result");
   dom.drawerQuitButton.textContent = state.roundActive || state.phase === "result" ? "Quit Round" : "Round Finished";
-  playSfx("popup");
 }
 
 function closeConfirmationModal() {
@@ -1256,7 +1305,6 @@ function openConfirmationModal({ title, description, cancelText, confirmText, co
   dom.confirmationModal.classList.remove("hidden");
   dom.confirmationModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
-  playSfx("popup");
 }
 
 function showMenuScreen() {
@@ -1574,6 +1622,8 @@ function finalizeRound({ correct, recognitionTimeSec }) {
     state.session.bestStreak = Math.max(state.session.bestStreak || 0, state.stats.bestStreak || 0);
   }
 
+  updateGameHeaderMeta();
+
   if (state.selectedModeKey === "Adaptive") {
     adjustAdaptiveDifficulty(correct);
   }
@@ -1586,8 +1636,13 @@ function submitAnswer() {
     return;
   }
 
-  const userHour = state.selectedHour;
-  const userMinute = state.selectedMinute;
+  const typedAnswer = state.answerMode === "type" ? getTypedAnswer() : null;
+  if (state.answerMode === "type" && !typedAnswer) {
+    return;
+  }
+
+  const userHour = typedAnswer ? typedAnswer.hour : state.selectedHour;
+  const userMinute = typedAnswer ? typedAnswer.minute : state.selectedMinute;
   const correct = userHour === state.targetTime.hour && userMinute === state.targetTime.minute;
 
   let recognitionTimeSec = state.currentDifficulty.viewingTime;
@@ -1623,6 +1678,7 @@ function beginRound() {
 
   setWheelValue("hour", 12);
   setWheelValue("minute", 0);
+  resetTypedAnswerInputs();
   setClockVisibility(true);
   buildAnalogClock(state.targetTime, state.activeClockFace);
   resetFeedback();
@@ -1632,6 +1688,7 @@ function beginRound() {
   dom.timerValue.textContent = `${getActiveDifficulty().viewingTime.toFixed(1)}s`;
   dom.drawerQuitButton.disabled = false;
   dom.drawerQuitButton.textContent = "Quit Round";
+  updateGameHeaderMeta();
 
   stopViewingTimer();
   state.viewingTimerFrameId = window.requestAnimationFrame(updateViewingTimerDisplay);
@@ -1685,7 +1742,6 @@ document.addEventListener("DOMContentLoaded", () => {
   showMenuScreen();
 
   dom.startButton.addEventListener("click", () => {
-    playSfx("confirm");
     syncMusicState();
     beginSession(state.selectedModeKey);
   });
@@ -1775,32 +1831,15 @@ document.addEventListener("DOMContentLoaded", () => {
   dom.modeChoiceButtons.forEach((button) => {
     button.addEventListener("click", () => {
       setSelectedMode(button.dataset.modeKey || "Quick Rush");
-      playSfx("popup");
     });
   });
 
   dom.hourTypeInput.addEventListener("input", (event) => {
-    const sanitized = sanitizeTypedValue("hour", event.target.value);
-    if (sanitized === null) {
-      event.target.value = String(state.selectedHour);
-      return;
-    }
-
-    state.selectedHour = sanitized;
-    setWheelValue("hour", sanitized);
-    event.target.value = String(sanitized);
+    setTypedAnswerValue("hour", event.target);
   });
 
   dom.minuteTypeInput.addEventListener("input", (event) => {
-    const sanitized = sanitizeTypedValue("minute", event.target.value);
-    if (sanitized === null) {
-      event.target.value = String(state.selectedMinute).padStart(2, "0");
-      return;
-    }
-
-    state.selectedMinute = sanitized;
-    setWheelValue("minute", sanitized);
-    event.target.value = String(sanitized).padStart(2, "0");
+    setTypedAnswerValue("minute", event.target);
   });
 
   dom.soundEffectsToggle.addEventListener("click", () => {
@@ -1887,7 +1926,6 @@ document.addEventListener("DOMContentLoaded", () => {
       cancelText: "Continue",
       confirmText: "Quit",
       confirmAction: () => {
-        playSfx("confirm");
         quitCurrentRound();
       }
     });
@@ -1939,6 +1977,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   dom.resultsMenuButton.addEventListener("click", () => {
     showMenuScreen();
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    const directControl = target.closest?.("button, input[type='radio'], input[type='range'], select");
+    const labelControl = directControl ? null : target.closest?.("label")?.querySelector("input[type='radio'], input[type='range'], select");
+    const control = directControl || labelControl;
+
+    if (!control || control.disabled) {
+      return;
+    }
+
+    const confirmButtons = new Set([
+      "startButton",
+      "saveCustomDifficultyButton",
+      "modalConfirmButton",
+      "submitBtn"
+    ]);
+    playSfx(confirmButtons.has(control.id) ? "confirm" : "popup");
   });
 
   settings.audio.music = true;
